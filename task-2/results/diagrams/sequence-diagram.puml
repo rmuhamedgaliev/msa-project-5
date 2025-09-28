@@ -1,0 +1,37 @@
+@startuml
+
+title Последовательность выполнения генерации прайс-листов
+
+participant "Kubernetes CronJob" as scheduler
+participant "Job Launcher" as launcher
+participant "Batch Configuration" as config
+participant "Product Reader" as reader
+participant "Price Processor" as processor
+participant "CSV Writer" as writer
+participant "PostgreSQL" as postgres
+participant "File Storage" as storage
+participant "Monitoring" as monitoring
+
+scheduler->>launcher: Запуск в 6:00 AM
+launcher->>config: Инициализация Job
+config->>reader: Настройка Reader
+config->>processor: Настройка Processor
+config->>writer: Настройка Writer
+
+launcher->>monitoring: Начало выполнения job
+
+loop Для каждого chunk (1000 записей)
+    reader->>postgres: SELECT с JOIN запросом
+    postgres-->>reader: Результаты запроса
+    
+    reader->>processor: Передача данных
+    processor-->>reader: Обработанные данные
+    
+    processor->>writer: Запись в CSV
+    writer->>storage: Сохранение файла
+end
+
+launcher->>monitoring: Завершение job
+launcher-->>scheduler: Статус выполнения
+
+@enduml

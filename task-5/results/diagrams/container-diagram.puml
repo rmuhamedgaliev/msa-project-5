@@ -1,0 +1,45 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Container Diagram - Batch Processing with Monitoring & Logging
+
+Person(user, "Пользователь", "Запускает batch jobs")
+Person(ops, "DevOps", "Мониторит систему")
+
+System_Boundary(batch_app, "Batch Processing Application") {
+    Container(spring_batch, "Spring Batch App", "Java 17, Spring Boot 3.2", "Обрабатывает данные, экспортирует метрики и логи")
+}
+
+System_Boundary(monitoring, "Monitoring Stack") {
+    Container(prometheus, "Prometheus", "v3.4", "Собирает и хранит метрики")
+    Container(grafana, "Grafana", "v12.0", "Визуализирует метрики и алерты")
+}
+
+System_Boundary(logging, "Logging Stack") {
+    Container(filebeat, "Filebeat", "v7.17", "Собирает логи из Docker")
+    Container(logstash, "Logstash", "v7.17", "Обрабатывает логи")
+    Container(elasticsearch, "Elasticsearch", "v7.17", "Хранит логи")
+    Container(kibana, "Kibana", "v7.17", "Визуализирует логи")
+}
+
+ContainerDb(postgres, "PostgreSQL", "База данных", "Хранит продукты и batch metadata")
+
+Rel(user, spring_batch, "Запускает job", "POST /api/run-batch")
+Rel(ops, grafana, "Просматривает метрики", "HTTPS")
+Rel(ops, kibana, "Просматривает логи", "HTTPS")
+
+Rel(spring_batch, postgres, "Читает/пишет", "JDBC")
+Rel(spring_batch, prometheus, "Экспортирует метрики", "HTTP /actuator/prometheus")
+
+Rel(filebeat, spring_batch, "Читает логи", "Docker logs API")
+Rel(filebeat, logstash, "Отправляет логи", "Beats protocol")
+Rel(logstash, elasticsearch, "Индексирует", "HTTP")
+Rel(kibana, elasticsearch, "Запрашивает", "HTTP")
+
+Rel(prometheus, spring_batch, "Scrapes метрики", "HTTP pull")
+Rel(grafana, prometheus, "Запрашивает данные", "PromQL")
+
+@enduml
+

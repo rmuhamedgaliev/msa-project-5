@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: data-export-config
+  namespace: data-export
+data:
+  DB_HOST: "postgres-service"
+  DB_PORT: "5432"
+  DB_NAME: "freight_analytics"
+  DB_USERNAME: "postgres"
+  # DB_PASSWORD будет в Secret
+  export.data.directory: "/app/data"

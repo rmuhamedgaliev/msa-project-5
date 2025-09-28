@@ -1,0 +1,30 @@
+@startuml
+!include <C4/C4_Context>
+
+title Контекстная диаграмма системы генерации прайс-листов
+
+!define DIRECTION top to bottom direction
+!define LAYOUT_WITH_LEGEND()
+
+Person(b2b_client, "B2B Клиент", "Клиент, получающий кастомные прайс-листы")
+Person(admin, "Администратор", "Администратор системы")
+
+System_Boundary(k8s_cluster, "Kubernetes Cluster") {
+    System(price_generator, "Price List Generator", "Spring Batch приложение для генерации прайс-листов")
+    SystemDb(postgres, "PostgreSQL", "База данных с продуктами, клиентами и ценами")
+    System(storage, "File Storage", "Хранилище CSV файлов")
+    System(monitoring, "Monitoring", "Prometheus + Grafana")
+}
+
+System_Ext(scheduler, "Kubernetes CronJob", "Планировщик задач")
+System_Ext(notification, "Notification Service", "Сервис уведомлений")
+
+Rel(scheduler, price_generator, "Запускает в 6:00", "HTTP")
+Rel(price_generator, postgres, "Читает данные", "JDBC")
+Rel(price_generator, storage, "Сохраняет CSV", "File System")
+Rel(price_generator, monitoring, "Отправляет метрики", "HTTP")
+Rel(price_generator, notification, "Уведомления о статусе", "HTTP")
+Rel(b2b_client, storage, "Скачивает прайс-листы", "HTTPS")
+Rel(admin, monitoring, "Мониторинг системы", "HTTPS")
+
+@enduml

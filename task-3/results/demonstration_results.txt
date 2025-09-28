@@ -1,0 +1,147 @@
+minikube status
+
+minikube
+type: Control Plane
+host: Running
+kubelet: Running
+apiserver: Running
+kubeconfig: Configured
+
+kubectl get all -n data-export
+
+NAME                            READY   STATUS      RESTARTS   AGE
+pod/postgres-7d69995f8d-nzs6s   1/1     Running     0          49m
+pod/test-job-5z4gj              0/1     Completed   0          11m
+
+NAME                       TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
+service/postgres-service   ClusterIP   10.109.213.178   <none>        5432/TCP   49m
+
+NAME                       READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/postgres   1/1     1            1           49m
+
+NAME                                  DESIRED   CURRENT   READY   AGE
+replicaset.apps/postgres-7d69995f8d   1         1         1       49m
+
+NAME                                SCHEDULE     TIMEZONE   SUSPEND   ACTIVE   LAST SCHEDULE   AGE
+cronjob.batch/data-export-cronjob   0 20 * * *   <none>     False     0        <none>          49m
+
+NAME                    STATUS     COMPLETIONS   DURATION   AGE
+job.batch/manual-test   Failed     0/1           48m        48m
+job.batch/test-job      Complete   1/1           3s         11m
+
+kubectl describe cronjob data-export-cronjob -n data-export
+
+Name:                          data-export-cronjob
+Namespace:                     data-export
+Labels:                        <none>
+Annotations:                   <none>
+Schedule:                      0 20 * * *
+Concurrency Policy:            Allow
+Suspend:                       False
+Successful Job History Limit:  3
+Failed Job History Limit:      3
+Starting Deadline Seconds:     300s
+Selector:                      <unset>
+Parallelism:                   <unset>
+Completions:                   <unset>
+Active Deadline Seconds:       1800s
+
+Pod Template:
+  Labels:  app=data-export
+  Containers:
+   data-export:
+    Image:      data-export:latest
+    Port:       <none>
+    Host Port:  <none>
+    Environment:
+      DB_HOST:                <set to the key 'DB_HOST' of config map 'data-export-config'>
+      DB_PORT:                <set to the key 'DB_PORT' of config map 'data-export-config'>
+      DB_NAME:                <set to the key 'DB_NAME' of config map 'data-export-config'>
+      DB_USERNAME:            <set to the key 'DB_USERNAME' of config map 'data-export-config'>
+      DB_PASSWORD:            <set to the key 'DB_PASSWORD' in secret 'data-export-secret'>
+      EXPORT_DATA_DIRECTORY:  <set to the key 'export.data.directory' of config map 'data-export-config'>
+    Mounts:
+      /app/data from export-data (rw)
+  Volumes:
+   export-data:
+    Type:            EmptyDir (a temporary directory that shares a pod's lifetime)
+
+kubectl describe job test-job -n data-export
+
+Name:                     test-job
+Namespace:                data-export
+Selector:                 batch.kubernetes.io/controller-uid=de29c739-7087-4c8b-b480-3e95484cb193
+Labels:                   app=data-export
+Controlled By:            CronJob/data-export-cronjob
+Parallelism:              1
+Completions:              1
+Completion Mode:          NonIndexed
+Suspend:                  false
+Backoff Limit:            3
+Start Time:               Wed, 01 Oct 2025 01:34:58 +0300
+Completed At:             Wed, 01 Oct 2025 01:35:01 +0300
+Duration:                 3s
+Active Deadline Seconds:  1800s
+Pods Statuses:            0 Active (0 Ready) / 1 Succeeded / 0 Failed
+
+Events:
+  Type    Reason            Age   From            Message
+  ----    ------            ----  ----            -------
+  Normal  SuccessfulCreate  11m   job-controller  Created pod: test-job-5z4gj
+  Normal  Completed         11m   job-controller  Job completed
+
+kubectl logs job/test-job -n data-export
+
+2025-09-30 22:34:59,035 - INFO - Запуск приложения экспорта данных
+2025-09-30 22:34:59,035 - INFO - Начинаем экспорт данных за 2025-09-30
+2025-09-30 22:34:59,039 - INFO - Успешное подключение к базе данных
+2025-09-30 22:34:59,039 - INFO - Экспорт данных перевозок в файл: /app/data/shipments_2025-09-30.csv
+2025-09-30 22:34:59,043 - INFO - Экспортировано 5 записей перевозок
+2025-09-30 22:34:59,043 - INFO - Экспорт событий перевозок в файл: /app/data/shipment_events_2025-09-30.csv
+2025-09-30 22:34:59,045 - INFO - Экспортировано 10 событий перевозок
+2025-09-30 22:34:59,045 - INFO - Экспорт данных водителей в файл: /app/data/drivers_2025-09-30.csv
+2025-09-30 22:34:59,045 - INFO - Экспортировано 5 записей водителей
+2025-09-30 22:34:59,045 - INFO - Экспорт данных транспорта в файл: /app/data/vehicles_2025-09-30.csv
+2025-09-30 22:34:59,046 - INFO - Экспортировано 5 записей транспорта
+2025-09-30 22:34:59,046 - INFO - Экспорт данных клиентов в файл: /app/data/clients_2025-09-30.csv
+2025-09-30 22:34:59,047 - INFO - Экспортировано 5 записей клиентов
+2025-09-30 22:34:59,047 - INFO - Экспорт завершен успешно. Всего записей: 30
+2025-09-30 22:34:59,047 - INFO - Соединение с базой данных закрыто
+2025-09-30 22:34:59,047 - INFO - Приложение завершило работу успешно
+
+minikube image ls | grep data-export
+
+docker.io/library/data-export:latest
+
+kubectl exec -it pod/postgres-7d69995f8d-nzs6s -n data-export -- psql -U postgres -d freight_analytics -c "SELECT 'shipments' as table_name, COUNT(*) as records FROM shipments UNION ALL SELECT 'shipment_events', COUNT(*) FROM shipment_events UNION ALL SELECT 'drivers', COUNT(*) FROM drivers UNION ALL SELECT 'vehicles', COUNT(*) FROM vehicles UNION ALL SELECT 'clients', COUNT(*) FROM clients;"
+
+   table_name    | records 
+-----------------+---------
+ shipments       |      10
+ shipment_events |      10
+ drivers         |       5
+ vehicles        |       5
+ clients         |       5
+(5 rows)
+
+kubectl get all -n data-export -o wide
+
+NAME                            READY   STATUS      RESTARTS   AGE   IP            NODE       NOMINATED NODE   READINESS GATES
+pod/postgres-7d69995f8d-nzs6s   1/1     Running     0          50m   10.244.0.3    minikube   <none>           <none>
+pod/test-job-5z4gj              0/1     Completed   0          12m   10.244.0.18   minikube   <none>           <none>
+
+NAME                       TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE   SELECTOR
+service/postgres-service   ClusterIP   10.109.213.178   <none>        5432/TCP   50m   app=postgres
+
+NAME                       READY   UP-TO-DATE   AVAILABLE   AGE   CONTAINERS   IMAGES        SELECTOR
+deployment.apps/postgres   1/1     1            1           50m   postgres     postgres:15   app=postgres
+
+NAME                                  DESIRED   CURRENT   READY   AGE   CONTAINERS   IMAGES        SELECTOR
+replicaset.apps/postgres-7d69995f8d   1         1         1       50m   postgres     postgres:15   app=postgres,pod-template-hash=7d69995f8d
+
+NAME                                SCHEDULE     TIMEZONE   SUSPEND   ACTIVE   LAST SCHEDULE   AGE   CONTAINERS    IMAGES               SELECTOR
+cronjob.batch/data-export-cronjob   0 20 * * *   <none>     False     0        <none>          49m   data-export   data-export:latest   <none>
+
+NAME                    STATUS     COMPLETIONS   DURATION   AGE   CONTAINERS    IMAGES               SELECTOR
+job.batch/manual-test   Failed     0/1           49m        49m   data-export   data-export:latest   batch.kubernetes.io/controller-uid=5669339b-09b1-4c75-9c00-7ae01995b733
+job.batch/test-job      Complete   1/1           3s         12m   data-export   data-export:latest   batch.kubernetes.io/controller-uid=de29c739-7087-4c8b-b480-3e95484cb193

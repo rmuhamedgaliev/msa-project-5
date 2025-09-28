@@ -1,0 +1,59 @@
+@startuml
+
+title Последовательность выполнения ETL обработки в TradeWare
+
+participant "Сотрудник склада" as employee
+participant "Web UI" as web_ui
+participant "API Gateway" as api
+participant "Spring Batch Service" as batch
+participant "CSV Reader" as reader
+participant "Product Processor" as processor
+participant "Database Writer" as writer
+participant "Reference DB" as ref_db
+participant "Products DB" as products_db
+participant "File Storage" as storage
+participant "Monitoring" as monitoring
+
+employee->>web_ui: Загружает CSV файл
+web_ui->>api: POST /api/files/upload
+api->>api: Валидация формата файла
+api->>storage: Сохранение файла в GCS
+storage-->>api: URL файла
+api->>batch: Запуск ETL job
+api-->>web_ui: Статус: "Обработка начата"
+web_ui-->>employee: Уведомление: "Файл принят в обработку"
+
+batch->>monitoring: Начало выполнения job
+
+loop Для каждого chunk (1000 записей)
+    batch->>reader: Чтение chunk данных
+    reader->>storage: Загрузка CSV файла
+    storage-->>reader: Данные CSV
+    reader-->>batch: Chunk продуктов
+    
+    loop Для каждого продукта в chunk
+        batch->>processor: Обработка продукта
+        processor->>processor: Проверка кэша лояльности
+        
+        alt Данные в кэше
+            processor-->>batch: Обновленный продукт
+        else Данных нет в кэше
+            processor->>ref_db: SELECT loyalityData WHERE productSku = ?
+            ref_db-->>processor: Данные лояльности
+            processor->>processor: Обновление кэша
+            processor-->>batch: Обновленный продукт
+        end
+    end
+    
+    batch->>writer: Запись chunk в БД
+    writer->>products_db: INSERT/UPDATE products
+    products_db-->>writer: Подтверждение записи
+    writer-->>batch: Chunk записан
+end
+
+batch->>monitoring: Завершение job
+batch-->>api: Статус: "Обработка завершена"
+api-->>web_ui: Уведомление о завершении
+web_ui-->>employee: Уведомление: "Обработка завершена успешно"
+
+@enduml
