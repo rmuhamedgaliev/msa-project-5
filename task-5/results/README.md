@@ -23,27 +23,6 @@
 - PostgreSQL для хранения данных
 - Spring Boot Actuator для экспорта метрик
 
-## Структура проекта
-
-```
-task-5/results/
-├── diagrams/                          # C4 диаграммы
-│   ├── system-context.puml
-│   ├── container-diagram.puml
-│   └── component-diagram-monitoring.puml
-├── src/main/java/                     # Spring Batch приложение
-├── grafana/provisioning/              # Конфигурация Grafana
-│   ├── datasources/
-│   └── dashboards/
-├── prometheus/                        # Конфигурация Prometheus
-├── filebeat/                          # Конфигурация Filebeat
-├── logstash/                          # Конфигурация Logstash
-├── kibana/                            # Скрипты инициализации Kibana
-├── ADR-001-monitoring-logging.md      # Архитектурное решение
-├── docker-compose.yml                 # Оркестрация сервисов
-└── README.md                          # Данный файл
-```
-
 ## Предварительные требования
 
 - Docker и Docker Compose

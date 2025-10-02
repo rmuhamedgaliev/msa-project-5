@@ -113,22 +113,6 @@ curl -X POST http://localhost:8080/api/run-batch
 5. Добавил Python клиент с OpenTelemetry SDK
 6. `docker-compose.yml` - добавил Jaeger и batch-client сервисы
 
-## Структура
-
-```
-task-6/results/
-├── src/main/java/              # Spring Batch приложение
-│   └── BatchController.java    # REST API + MDC для трейсинга
-├── client/                     # Python клиент
-│   ├── batch_client.py         # Код с OpenTelemetry
-│   └── requirements.txt        # Зависимости
-├── build.gradle                # OpenTelemetry библиотеки
-├── docker-compose.yml          # Все сервисы + Jaeger
-├── monitoring.png              # Скриншот Grafana
-├── trace.png                   # Скриншот Jaeger
-└── README.md                   # Этот файл
-```
-
 ## Остановка
 
 ```bash
