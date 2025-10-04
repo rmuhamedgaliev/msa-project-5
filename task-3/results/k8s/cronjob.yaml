@@ -1,0 +1,65 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: data-export-cronjob
+  namespace: data-export
+spec:
+  # Запуск каждый день в 20:00 (8 PM)
+  schedule: "0 20 * * *"
+  # Время жизни завершенных заданий (24 часа)
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  # Время ожидания перед запуском нового задания (5 минут)
+  startingDeadlineSeconds: 300
+  jobTemplate:
+    spec:
+      # Время выполнения задания (30 минут)
+      activeDeadlineSeconds: 1800
+      backoffLimit: 3
+      template:
+        metadata:
+          labels:
+            app: data-export
+        spec:
+          restartPolicy: OnFailure
+          containers:
+          - name: data-export
+            image: data-export:latest
+            imagePullPolicy: Never  # Для локальной разработки с Minikube
+            env:
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: data-export-config
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: data-export-config
+                  key: DB_PORT
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: data-export-config
+                  key: DB_NAME
+            - name: DB_USERNAME
+              valueFrom:
+                configMapKeyRef:
+                  name: data-export-config
+                  key: DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: data-export-secret
+                  key: DB_PASSWORD
+            - name: EXPORT_DATA_DIRECTORY
+              valueFrom:
+                configMapKeyRef:
+                  name: data-export-config
+                  key: export.data.directory
+            volumeMounts:
+            - name: export-data
+              mountPath: /app/data
+          volumes:
+          - name: export-data
+            emptyDir: {}

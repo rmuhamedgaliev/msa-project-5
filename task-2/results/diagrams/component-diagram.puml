@@ -1,0 +1,41 @@
+@startuml
+!include <C4/C4_Component>
+
+title Диаграмма компонентов Spring Batch приложения
+
+!define DIRECTION top to bottom direction
+!define LAYOUT_WITH_LEGEND()
+
+Container_Boundary(batch_app, "Spring Batch Application") {
+    Component(batch_config, "BatchConfiguration", "Spring Configuration", "Конфигурация job и step")
+    Component(price_job, "PriceListJob", "Spring Batch Job", "Основной job для генерации прайс-листов")
+    Component(price_step, "PriceListStep", "Spring Batch Step", "Step с chunk processing")
+    
+    Component(reader, "PriceListReader", "JdbcCursorItemReader", "Чтение данных из PostgreSQL")
+    Component(processor, "PriceListProcessor", "ItemProcessor", "Обработка и трансформация данных")
+    Component(writer, "CsvFileWriter", "FlatFileItemWriter", "Запись в CSV файлы")
+    
+    Component(row_mapper, "PriceListItemRowMapper", "RowMapper", "Маппинг ResultSet в объекты")
+    Component(price_model, "PriceListItem", "Domain Model", "Модель данных прайс-листа")
+    
+    Component(data_source, "DataSource", "HikariCP", "Connection pool для БД")
+    Component(transaction_manager, "TransactionManager", "PlatformTransactionManager", "Управление транзакциями")
+}
+
+SystemDb(postgres, "PostgreSQL Database", "PostgreSQL", "База данных с продуктами, клиентами и ценами")
+ContainerDb(file_storage, "File Storage", "NFS/EFS", "Хранилище CSV файлов")
+
+Rel(batch_config, price_job, "Создает", "Spring")
+Rel(price_job, price_step, "Содержит", "Spring")
+Rel(price_step, reader, "Использует", "Spring")
+Rel(price_step, processor, "Использует", "Spring")
+Rel(price_step, writer, "Использует", "Spring")
+Rel(price_step, transaction_manager, "Использует", "Spring")
+Rel(reader, row_mapper, "Использует", "Spring")
+Rel(reader, data_source, "Использует", "Spring")
+Rel(reader, postgres, "SELECT запросы", "JDBC")
+Rel(processor, price_model, "Обрабатывает", "Spring")
+Rel(writer, price_model, "Записывает", "Spring")
+Rel(writer, file_storage, "Сохраняет CSV", "File System")
+
+@enduml

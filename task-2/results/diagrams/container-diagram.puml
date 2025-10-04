@@ -1,0 +1,40 @@
+@startuml
+!include <C4/C4_Container>
+
+title Диаграмма контейнеров системы генерации прайс-листов
+
+!define DIRECTION top to bottom direction
+!define LAYOUT_WITH_LEGEND()
+
+Person(b2b_client, "B2B Клиент", "Клиент, получающий кастомные прайс-листы")
+
+System_Boundary(k8s_cluster, "Kubernetes Cluster") {
+    System_Boundary(batch_app, "Spring Batch Application") {
+        Container(batch_config, "Batch Configuration", "Spring", "Конфигурация job и step")
+        Container(reader, "Product Reader", "JdbcCursorItemReader", "Чтение данных из БД")
+        Container(processor, "Price Processor", "ItemProcessor", "Обработка данных")
+        Container(writer, "CSV Writer", "FlatFileItemWriter", "Запись в CSV файлы")
+        Container(launcher, "Job Launcher", "CommandLineJobRunner", "Запуск batch job")
+    }
+    
+    SystemDb(postgres, "PostgreSQL Database", "PostgreSQL", "База данных с продуктами, клиентами и ценами")
+    ContainerDb(file_storage, "File Storage", "NFS/EFS", "Хранилище CSV файлов")
+    Container(monitoring, "Monitoring Stack", "Prometheus + Grafana", "Мониторинг и алерты")
+}
+
+System_Ext(scheduler, "Kubernetes CronJob", "Планировщик задач")
+System_Ext(notification, "Notification Service", "Сервис уведомлений")
+
+Rel(scheduler, launcher, "Запускает в 6:00", "kubectl")
+Rel(launcher, batch_config, "Инициализирует", "Spring")
+Rel(batch_config, reader, "Настраивает", "Spring")
+Rel(batch_config, processor, "Настраивает", "Spring")
+Rel(batch_config, writer, "Настраивает", "Spring")
+Rel(reader, postgres, "SELECT с JOIN", "JDBC")
+Rel(processor, reader, "Обрабатывает", "Spring")
+Rel(writer, file_storage, "Записывает CSV", "File System")
+Rel(launcher, monitoring, "Метрики выполнения", "HTTP")
+Rel(launcher, notification, "Статус выполнения", "HTTP")
+Rel(b2b_client, file_storage, "Скачивает файлы", "HTTPS")
+
+@enduml

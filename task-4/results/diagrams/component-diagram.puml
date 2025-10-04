@@ -1,0 +1,52 @@
+@startuml
+!include <C4/C4_Component>
+
+title Диаграмма компонентов Spring Batch ETL Service
+
+!define DIRECTION top to bottom direction
+!define LAYOUT_WITH_LEGEND()
+
+Container_Boundary(batch_service, "Spring Batch ETL Service") {
+    Component(batch_config, "BatchConfiguration", "Spring Configuration", "Конфигурация job и step")
+    Component(product_job, "ProductImportJob", "Spring Batch Job", "Основной job для обработки продуктов")
+    Component(etl_step, "ETLStep", "Spring Batch Step", "Step с chunk processing")
+    
+    Component(csv_reader, "CSVReader", "FlatFileItemReader", "Чтение CSV файлов")
+    Component(product_processor, "ProductProcessor", "ItemProcessor", "Обработка и обновление данных лояльности")
+    Component(db_writer, "DatabaseWriter", "JdbcBatchItemWriter", "Запись в PostgreSQL")
+    
+    Component(loyalty_cache, "LoyaltyCache", "ConcurrentHashMap", "Кэш справочных данных")
+    Component(product_model, "Product", "Domain Model", "Модель данных продукта")
+    Component(loyalty_model, "Loyalty", "Domain Model", "Модель данных лояльности")
+    
+    Component(data_source, "DataSource", "HikariCP", "Connection pool для БД")
+    Component(transaction_manager, "TransactionManager", "PlatformTransactionManager", "Управление транзакциями")
+    Component(job_listener, "JobListener", "JobExecutionListener", "Обработка событий job")
+}
+
+SystemDb(reference_db, "Reference Database", "PostgreSQL", "Справочные данные лояльности")
+SystemDb(products_db, "Products Database", "PostgreSQL", "Номенклатура товаров")
+ContainerDb(file_storage, "File Storage", "Google Cloud Storage", "CSV файлы")
+
+Rel(batch_config, product_job, "Создает", "Spring")
+Rel(product_job, etl_step, "Содержит", "Spring")
+Rel(product_job, job_listener, "Использует", "Spring")
+Rel(etl_step, csv_reader, "Использует", "Spring")
+Rel(etl_step, product_processor, "Использует", "Spring")
+Rel(etl_step, db_writer, "Использует", "Spring")
+Rel(etl_step, transaction_manager, "Использует", "Spring")
+
+Rel(csv_reader, product_model, "Читает", "Spring")
+Rel(csv_reader, file_storage, "Читает CSV", "GCS API")
+
+Rel(product_processor, product_model, "Обрабатывает", "Spring")
+Rel(product_processor, loyalty_cache, "Использует кэш", "Java")
+Rel(product_processor, reference_db, "Читает справочные данные", "JDBC")
+
+Rel(db_writer, product_model, "Записывает", "Spring")
+Rel(db_writer, data_source, "Использует", "Spring")
+Rel(db_writer, products_db, "INSERT/UPDATE", "JDBC")
+
+Rel(loyalty_cache, loyalty_model, "Кэширует", "Java")
+
+@enduml

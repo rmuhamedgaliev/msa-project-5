@@ -1,0 +1,26 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+
+title System Context - TradeWare Batch Processing with Monitoring
+
+Person(warehouse_employee, "Сотрудник склада", "Использует систему для запуска обработки данных")
+Person(ops_engineer, "DevOps инженер", "Мониторит систему и настраивает алерты")
+
+System(batch_system, "Batch Processing System", "Обрабатывает складские данные, собирает метрики и логи")
+
+System_Ext(monitoring_system, "Monitoring Stack", "Prometheus + Grafana для метрик и дашбордов")
+System_Ext(logging_system, "Logging Stack", "ELK Stack для централизованного логирования")
+System_Ext(postgres, "PostgreSQL Database", "Хранит данные о продуктах и историю обработки")
+
+Rel(warehouse_employee, batch_system, "Запускает batch jobs", "REST API")
+Rel(ops_engineer, monitoring_system, "Просматривает метрики и алерты", "HTTPS")
+Rel(ops_engineer, logging_system, "Анализирует логи приложения", "HTTPS")
+
+Rel(batch_system, postgres, "Читает/пишет данные", "JDBC")
+Rel(batch_system, monitoring_system, "Отправляет метрики", "HTTP /actuator/prometheus")
+Rel(batch_system, logging_system, "Отправляет логи", "JSON logs via Filebeat")
+
+@enduml
+

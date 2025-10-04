@@ -21,9 +21,15 @@ public class ProductItemProcessor implements ItemProcessor<Product, Product> {
 
     @Override
 	public Product process(final Product product) {
-      //todo
+		final Long productId = product.productId();
+		final Long productSku = product.productSku();
+		final String productName = product.productName();
+		final Long productAmount = product.productAmount();
+		final String productData = product.productData();
 
-		return //todo
+		log.debug("Processing product SKU {}: {}", productSku, productData);
+
+		return new Product(productId, productSku, productName, productAmount, productData);
 	}
 
 }

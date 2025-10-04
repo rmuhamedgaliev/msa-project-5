@@ -1,0 +1,79 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+title Component Diagram - TradeWare Batch Processing с мониторингом и логированием
+
+Person(warehouse, "Сотрудник склада", "Использует web-приложение загрузки отчетов")
+Person(devops, "DevOps инженер", "Мониторит систему")
+
+Container_Boundary(frontend, "Frontend") {
+    Container(web_app, "Web Application", "JS, Angular", "Приложение для пользователя")
+}
+
+Container_Boundary(backend, "Backend GCP/ComputeEngine") {
+    Component(batch_app, "Batch Processing", "Spring Boot 3.2, Java 17", "Обработка отчетов, экспорт метрик")
+    
+    ComponentDb(nomenclature_db, "БД номенклатуры", "PostgreSQL", "Актуальные данные о товарах")
+    ComponentDb(reference_db, "БД справочных данных", "PostgreSQL", "Характеристики, промо-акции")
+    ComponentDb(file_storage, "Файловое хранилище", "Google Cloud Storage", "Загруженные отчеты")
+}
+
+Container_Boundary(monitoring, "Monitoring Stack") {
+    Component(prometheus, "Prometheus", "v3.4", "Сбор метрик")
+    Component(grafana, "Grafana", "v12.0", "Дашборды и алерты")
+}
+
+Container_Boundary(logging, "Logging Stack (ELK)") {
+    Component(filebeat, "Filebeat", "v7.17", "Сбор логов")
+    Component(logstash, "Logstash", "v7.17", "Обработка логов")
+    Component(elasticsearch, "Elasticsearch", "v7.17", "Хранение логов")
+    Component(kibana, "Kibana", "v7.17", "Визуализация логов")
+}
+
+Rel(warehouse, web_app, "Использует", "HTTPS")
+Rel(web_app, batch_app, "Вызывает", "REST API JSON/HTTP")
+
+Rel(batch_app, nomenclature_db, "Получение и запись данных", "JDBC/SQL")
+Rel(batch_app, reference_db, "Получение данных", "JDBC/SQL")
+Rel(batch_app, file_storage, "Получение и запись данных", "GCS API")
+
+Rel(batch_app, prometheus, "Экспортирует метрики", "HTTP /actuator/prometheus")
+Rel(prometheus, batch_app, "Scrapes метрики", "Pull every 5s")
+Rel(grafana, prometheus, "Запрашивает данные", "PromQL")
+
+Rel(filebeat, batch_app, "Читает логи", "Docker logs API")
+Rel(filebeat, logstash, "Отправляет логи", "Beats protocol")
+Rel(logstash, elasticsearch, "Индексирует логи", "HTTP/JSON")
+Rel(kibana, elasticsearch, "Запрашивает логи", "HTTP")
+
+Rel(devops, grafana, "Просматривает метрики", "HTTPS")
+Rel(devops, kibana, "Анализирует логи", "HTTPS")
+
+note right of batch_app
+  **Экспортируемые метрики:**
+  - batch_processed_items_total
+  - batch_failed_items_total
+  - batch_job_execution_duration
+  - process_cpu_usage
+  - jvm_memory_used_bytes
+end note
+
+note right of grafana
+  **Настроенные алерты:**
+  - High CPU Usage (>80%)
+  - High Memory Usage (>85%)
+  - Batch Job Failures (>0)
+  - Slow Execution (>60s)
+end note
+
+note right of kibana
+  **Saved Searches:**
+  - Batch Processing Logs
+  - Batch Job Execution
+  - Error Logs
+end note
+
+@enduml
+

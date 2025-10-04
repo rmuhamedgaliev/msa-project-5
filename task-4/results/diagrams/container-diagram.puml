@@ -1,0 +1,47 @@
+@startuml
+!include <C4/C4_Container>
+
+title Диаграмма контейнеров TradeWare с Spring Batch ETL
+
+!define DIRECTION top to bottom direction
+!define LAYOUT_WITH_LEGEND()
+
+Person(warehouse_employee, "Сотрудник склада", "Загружает отчеты по остаткам")
+Person(warehouse_manager, "Менеджер склада", "Мониторит процесс")
+
+System_Boundary(gcp_cloud, "Google Cloud Platform") {
+    System_Boundary(web_tier, "Web Tier") {
+        Container(web_ui, "Web UI", "Angular", "Интерфейс загрузки файлов")
+    }
+    
+    System_Boundary(application_tier, "Application Tier") {
+        Container(api_gateway, "API Gateway", "Spring Boot", "Валидация файлов и управление задачами")
+        Container(batch_service, "Spring Batch Service", "Spring Batch", "ETL обработка данных")
+    }
+    
+    System_Boundary(data_tier, "Data Tier") {
+        ContainerDb(products_db, "Products Database", "PostgreSQL", "Номенклатура товаров")
+        ContainerDb(reference_db, "Reference Database", "PostgreSQL", "Справочные данные лояльности")
+        ContainerDb(file_storage, "File Storage", "Google Cloud Storage", "CSV файлы отчетов")
+    }
+    
+    System_Boundary(monitoring_tier, "Monitoring Tier") {
+        Container(monitoring, "Monitoring Stack", "Prometheus + Grafana", "Метрики и логи")
+    }
+}
+
+Rel(warehouse_employee, web_ui, "Загружает CSV", "HTTPS")
+Rel(warehouse_manager, web_ui, "Мониторит процесс", "HTTPS")
+
+Rel(web_ui, api_gateway, "Отправляет файлы", "REST API")
+Rel(api_gateway, file_storage, "Сохраняет файлы", "GCS API")
+Rel(api_gateway, batch_service, "Запускает ETL", "Spring Events")
+
+Rel(batch_service, file_storage, "Читает CSV", "GCS API")
+Rel(batch_service, reference_db, "Читает справочные данные", "JDBC")
+Rel(batch_service, products_db, "Записывает данные", "JDBC")
+
+Rel(batch_service, monitoring, "Метрики выполнения", "HTTP")
+Rel(api_gateway, monitoring, "Метрики API", "HTTP")
+
+@enduml

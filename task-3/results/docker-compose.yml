@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: freight_analytics_db
+    environment:
+      POSTGRES_DB: freight_analytics
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  data-export:
+    build: .
+    container_name: data_export_app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: freight_analytics
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      EXPORT_DATA_DIRECTORY: /app/data
+    volumes:
+      - ./data:/app/data
+    command: python data_export.py
+
+volumes:
+  postgres_data:

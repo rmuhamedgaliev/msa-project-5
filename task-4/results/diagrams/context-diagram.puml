@@ -1,0 +1,38 @@
+@startuml
+!include <C4/C4_Context>
+
+title Контекстная диаграмма TradeWare с Spring Batch ETL
+
+!define DIRECTION top to bottom direction
+!define LAYOUT_WITH_LEGEND()
+
+Person(warehouse_employee, "Сотрудник склада", "Загружает отчеты по остаткам товаров")
+Person(warehouse_manager, "Менеджер склада", "Мониторит процесс обработки данных")
+Person(partner, "Партнер", "Получает актуальные данные о товарах")
+
+System_Boundary(tradeware_system, "TradeWare System") {
+    System(web_app, "Web Application", "Angular приложение для загрузки отчетов")
+    System(api_gateway, "API Gateway", "Spring Boot API для валидации и управления")
+    System(batch_service, "Spring Batch Service", "ETL обработка данных")
+    SystemDb(products_db, "Products Database", "PostgreSQL с номенклатурой товаров")
+    SystemDb(reference_db, "Reference Database", "PostgreSQL со справочными данными")
+    System(file_storage, "File Storage", "Google Cloud Storage для CSV файлов")
+    System(monitoring, "Monitoring Stack", "Prometheus + Grafana")
+}
+
+Rel(warehouse_employee, web_app, "Загружает CSV отчеты", "HTTPS")
+Rel(warehouse_manager, web_app, "Мониторит процесс", "HTTPS")
+Rel(partner, api_gateway, "Получает данные о товарах", "REST API")
+
+Rel(web_app, api_gateway, "Отправляет файлы", "REST API")
+Rel(api_gateway, batch_service, "Запускает ETL задачи", "Spring")
+Rel(api_gateway, file_storage, "Сохраняет файлы", "GCS API")
+
+Rel(batch_service, file_storage, "Читает CSV файлы", "GCS API")
+Rel(batch_service, reference_db, "Читает справочные данные", "JDBC")
+Rel(batch_service, products_db, "Записывает обработанные данные", "JDBC")
+
+Rel(batch_service, monitoring, "Отправляет метрики", "HTTP")
+Rel(api_gateway, monitoring, "Отправляет метрики", "HTTP")
+
+@enduml

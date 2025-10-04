@@ -1,46 +1,35 @@
-**Подсказки по подготовке окружения**
+# Task 5 - Monitoring & Logging
 
-1. Установите Docker и Docker Compose
-2. Для удобства просмотра кода может понадобиться:
+## Подготовка окружения
 
-   a. Установите JDK 17
-   b. Установите Gradle (или используйте встроенную в Idea)
+```bash
+# Установка зависимостей
+./gradlew build
+```
 
-   c. Установите Idea
+## Создание образа
 
-   **Сборка приложения**
+```bash
+docker build . -t batch-processing
+```
 
-   ```
-   ./gradlew build
-   ```
+## Запуск приложения
 
+```bash
+docker-compose up
+```
 
-**Создание образа**
+## Инициализация БД
 
-   ```
-   docker build . -t batch-processin
-   ```
+Создать таблицы используя скрипт:
+`task-5/initial/src/main/resources/schema-all.sql`
 
+## Компоненты
 
-**Запуск приложения**
-
-   ```bash
-   docker-compose up 
-   ```
-
-При запуске приложения необходимо создать таблицы в БД использую любой удобный клиент, используя скрипты расположенные здесь
-
-    *task-4/initial/src/main/resources/schema-all.sql*
-
-Получаемые компоненты:
-- PostgreSQL (порт 5432)(5432 host машина)
-
-
+- PostgreSQL (порт 5432)
 - batch-processing
 - grafana
 - prometheus
-- filebnat
+- filebeat
 - logstash
 - elasticsearch
-
-
